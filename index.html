@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Championship 3D Cricket</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Three.js for 3D graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- GSAP for smooth UI animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body>
+    <!-- Game Canvas Container -->
+    <div id="game-container"></div>
+
+    <!-- UI Overlay Layer -->
+    <div id="ui-layer">
+        
+        <!-- Main Menu / Setup Screen -->
+        <div id="menu-screen" class="overlay-screen active">
+            <div class="glass-card main-menu-card">
+                <h1 class="game-title">CHAMPIONSHIP<br><span class="neon-text">3D CRICKET</span></h1>
+                <p class="game-subtitle">A Premium WebGL Cricket Simulator</p>
+                
+                <div class="menu-sections">
+                    <!-- Team Selection -->
+                    <div class="menu-section">
+                        <h3>SELECT TEAMS</h3>
+                        <div class="team-selector-container">
+                            <div class="team-picker">
+                                <label for="player-team">Your Team</label>
+                                <select id="player-team">
+                                    <option value="IND" selected>India (IND)</option>
+                                    <option value="AUS">Australia (AUS)</option>
+                                    <option value="ENG">England (ENG)</option>
+                                    <option value="RSA">South Africa (RSA)</option>
+                                    <option value="PAK">Pakistan (PAK)</option>
+                                    <option value="NZL">New Zealand (NZL)</option>
+                                    <option value="WIN">West Indies (WIN)</option>
+                                </select>
+                            </div>
+                            <div class="vs-badge">VS</div>
+                            <div class="team-picker">
+                                <label for="opponent-team">Opponent</label>
+                                <select id="opponent-team">
+                                    <option value="IND">India (IND)</option>
+                                    <option value="AUS" selected>Australia (AUS)</option>
+                                    <option value="ENG">England (ENG)</option>
+                                    <option value="RSA">South Africa (RSA)</option>
+                                    <option value="PAK">Pakistan (PAK)</option>
+                                    <option value="NZL">New Zealand (NZL)</option>
+                                    <option value="WIN">West Indies (WIN)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Match Settings -->
+                    <div class="menu-section">
+                        <h3>MATCH SETTINGS</h3>
+                        <div class="settings-grid">
+                            <div class="setting-item">
+                                <label>Overs</label>
+                                <div class="segmented-control" id="overs-control">
+                                    <button class="active" data-value="1">1 Over</button>
+                                    <button data-value="2">2 Overs</button>
+                                    <button data-value="5">5 Overs</button>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <label>Difficulty</label>
+                                <div class="segmented-control" id="difficulty-control">
+                                    <button data-value="easy">Easy</button>
+                                    <button class="active" data-value="medium">Medium</button>
+                                    <button data-value="hard">Hard</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="menu-actions">
+                    <button id="start-game-btn" class="btn primary-btn btn-glow">START MATCH</button>
+                </div>
+
+                <div class="controls-guide">
+                    <h4>CONTROLS QUICK GUIDE</h4>
+                    <div class="controls-list">
+                        <div><span>Move in Crease:</span> <strong>A / D</strong> or <strong>Left / Right Arrows</strong></div>
+                        <div><span>Swing Bat:</span> <strong>SPACEBAR</strong> (Time it perfectly!)</div>
+                        <div><span>Lofted Shot:</span> <strong>Hold SHIFT + SPACEBAR</strong></div>
+                        <div><span>Aim Shot:</span> <strong>A / D</strong> or <strong>Left / Right Arrows</strong> during swing</div>
+                        <div><span>Run Wickets:</span> <strong>R Key</strong> (after hitting the ball)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gameplay HUD (Heads-Up Display) -->
+        <div id="hud-overlay" class="hud-container">
+            <!-- Top Score Panel -->
+            <div class="hud-top">
+                <div class="glass-card score-panel">
+                    <div class="team-names">
+                        <span id="hud-player-team-lbl">IND</span> vs <span id="hud-opp-team-lbl">AUS</span>
+                    </div>
+                    <div class="main-score">
+                        <span id="hud-runs">0</span>/<span id="hud-wickets">0</span>
+                    </div>
+                    <div class="overs-stat">
+                        Overs: <span id="hud-overs">0.0</span>
+                    </div>
+                </div>
+
+                <div class="glass-card match-status-panel">
+                    <div class="target-info">
+                        Target: <span id="hud-target">Chasing 12</span>
+                    </div>
+                    <div class="runs-needed-info" id="hud-requirement-txt">
+                        Need 12 runs off 6 balls
+                    </div>
+                    <div class="run-rate-info">
+                        Req. RR: <span id="hud-req-rr">12.00</span> | Curr. RR: <span id="hud-curr-rr">0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mini Radar Map (Fielders and Ball location) -->
+            <div id="radar-panel" class="glass-card radar-card">
+                <canvas id="radar-canvas" width="120" height="120"></canvas>
+                <div class="radar-label">FIELD RADAR</div>
+            </div>
+
+            <!-- Right-side controls feedback -->
+            <div id="feedback-panel">
+                <div id="timing-feedback" class="feedback-text"></div>
+                <div id="shot-feedback" class="feedback-text"></div>
+            </div>
+
+            <!-- Bottom Action Panel -->
+            <div class="hud-bottom">
+                <div class="batsman-controls-hint glass-card">
+                    <div class="hint-item">
+                        <span class="control-key">A / D</span> Crease Move
+                    </div>
+                    <div class="hint-item">
+                        <span class="control-key">SPACE</span> normal
+                    </div>
+                    <div class="hint-item">
+                        <span class="control-key">SHIFT + SPACE</span> lofted
+                    </div>
+                </div>
+
+                <div class="interactive-controls">
+                    <button id="mobile-swing-btn" class="btn action-btn swing-btn">SWING BAT</button>
+                    <button id="mobile-run-btn" class="btn action-btn run-btn disabled" disabled>RUN (R)</button>
+                </div>
+
+                <div class="active-bowler-card glass-card">
+                    <div class="bowler-label">BOWLER</div>
+                    <div id="hud-bowler-name" class="bowler-name">Stark (Fast)</div>
+                    <div id="hud-ball-speed" class="ball-speed">-- km/h</div>
+                </div>
+            </div>
+
+            <!-- Running Progress Tracker Overlay -->
+            <div id="running-tracker" class="glass-card running-progress-card hidden">
+                <div class="runner-labels">
+                    <span class="crease-label left-crease">Striker Crease</span>
+                    <span class="runs-status-label" id="running-status-lbl">RUNNING...</span>
+                    <span class="crease-label right-crease">Non-Striker Crease</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="running-progress-fill" class="progress-fill" style="width: 0%;"></div>
+                    <div id="runner-batsman-1" class="runner-dot batsman-dot"></div>
+                    <div id="runner-batsman-2" class="runner-dot batsman-dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pause / Settings Panel -->
+        <div id="settings-btn" class="settings-trigger-btn">⚙️</div>
+        
+        <div id="settings-overlay" class="overlay-screen hidden">
+            <div class="glass-card settings-card">
+                <h2>GAME SETTINGS</h2>
+                <div class="settings-list">
+                    <div class="settings-row">
+                        <label>Audio / Sound Effects</label>
+                        <button id="audio-toggle-btn" class="btn setting-toggle active">ON</button>
+                    </div>
+                    <div class="settings-row">
+                        <label>Camera View</label>
+                        <select id="camera-select">
+                            <option value="batting">Batting Crease (Default)</option>
+                            <option value="follow">Follow Ball</option>
+                            <option value="broadcast">TV Broadcast</option>
+                        </select>
+                    </div>
+                    <div class="settings-row">
+                        <label>Ball Landing Indicator</label>
+                        <button id="indicator-toggle-btn" class="btn setting-toggle active">ON</button>
+                    </div>
+                </div>
+                <div class="settings-actions">
+                    <button id="close-settings-btn" class="btn secondary-btn">CLOSE</button>
+                    <button id="exit-match-btn" class="btn danger-btn">EXIT MATCH</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Post Match / Scorecard Screen -->
+        <div id="game-over-screen" class="overlay-screen hidden">
+            <div class="glass-card game-over-card">
+                <h1 id="game-result-title" class="result-title winner-text">YOU WON!</h1>
+                <p id="game-result-subtitle" class="result-subtitle">By 5 wickets</p>
+                
+                <div class="scorecard-summary">
+                    <div class="summary-row header-row">
+                        <span>TEAM</span>
+                        <span>SCORE</span>
+                        <span>OVERS</span>
+                    </div>
+                    <div class="summary-row">
+                        <span id="summary-opp-team-name">AUS</span>
+                        <span id="summary-opp-score">11/0</span>
+                        <span id="summary-opp-overs">1.0</span>
+                    </div>
+                    <div class="summary-row player-highlight">
+                        <span id="summary-player-team-name">IND</span>
+                        <span id="summary-player-score">12/1</span>
+                        <span id="summary-player-overs">0.4</span>
+                    </div>
+                </div>
+
+                <div class="match-stats-details">
+                    <h3>MATCH STATS</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stats-total-balls">4</div>
+                            <div class="stat-label">Balls Played</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stats-sixes">1</div>
+                            <div class="stat-label">Sixes (6s)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stats-fours">1</div>
+                            <div class="stat-label">Fours (4s)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stats-dots">1</div>
+                            <div class="stat-label">Dot Balls</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="game-over-actions">
+                    <button id="restart-match-btn" class="btn primary-btn btn-glow">PLAY AGAIN</button>
+                    <button id="menu-match-btn" class="btn secondary-btn">MAIN MENU</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Main Game Script -->
+    <script src="game.js"></script>
+</body>
+</html>
